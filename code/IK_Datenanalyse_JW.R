@@ -128,8 +128,8 @@ summary(as.factor(df_cope11$cluster)) # Anzahl der Personen in den Clustern
 
 
 # Tabelle 2 erstellen -----------------------------------------------------
-df_cope10_147$cluster <- df_cope11$cluster #Clusterzuordnung
-df_cope10_147$OECD_GELD <- df_jw$OECD_GELD
+df_cope10$cluster <- df_cope11$cluster #Clusterzuordnung
+df_cope10$OECD_GELD <- df_jw$OECD_GELD
 
 df_jw$cluster <- df_cope11$cluster
 
@@ -508,4 +508,49 @@ subset_ttest3 <- subset(df_cope10_147, cluster == 2 | cluster == 3)
 lm_anova <- lm(WARWICKS ~ cluster, df_cope10_147)
 apa.aov.table(lm_anova, filename = "jw_anova.doc")
 
+
+
+# zusätzliche Tabelle für Cluster -----------------------------------------
+
+rndr2 <- function(x, name, ...) {
+  if (!is.numeric(x)) return(render.categorical.default(x))
+  what <- switch(name,
+                 WARWICKS = c("Mean (SD)", "Median [Min, Max]"), 
+                 WARWICKS_t1 = c("Mean (SD)", "Median [Min, Max]"),
+                 GKS = c("Mean (SD)", "Median [Min, Max]"),
+                 GKS_t1 = c("Mean (SD)", "Median [Min, Max]"),
+                 PCS = c("Mean (SD)", "Median [Min, Max]"),
+                 ECS = c("Mean (SD)", "Median [Min, Max]"),
+                 VCS = c("Mean (SD)", "Median [Min, Max]"))
+  parse.abbrev.render.code(c("", what))(x)
+}
+
+label(df_jw$WARWICKS) <- "Wohlbefinden (t₀)"
+label(df_jw$WARWICKS_t1) <- "Wohlbefinden (t₁)"
+label(df_jw$GKS) <- "Konfliktscore (t₀)"
+label(df_jw$GKS_t1) <- "Konfliktscore (t₁)"
+
+
+caption <- "Tabelle 2. Cluster Charakteristiken"
+footnote <- "¹ inkl. divers (n=1), ² inkl. Hauptschulabschluss (n=1),  ³ Fehlende Werte (n=1)"
+
+Tabelle6 <- table1 (~ PCS + ECS + VCS| cluster, 
+                    data = df_jw, 
+                    overall = "Gesamt")
+
+Tabelle6
+
+Tabelle7 <- table1 (~ WARWICKS + WARWICKS_t1| cluster, 
+                    data = df_jw, 
+                    overall = "Gesamt",
+                    render = rndr2)
+
+Tabelle7
+
+Tabelle8 <- table1 (~ GKS + GKS_t1| cluster, 
+                    data = df_jw, 
+                    overall = "Gesamt",
+                    render = rndr2)
+
+Tabelle8
 
