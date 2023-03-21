@@ -42,7 +42,6 @@ df_jw$SEX[df_jw$SEX == 3] <- 2
                                                    4500, 5500))) %>% as.numeric()
   df_jw$OECD_GELD <- df_jw$GELD_MET/df_jw$OECD
   
-  df_jw2 <- df_jw #wird für spätere Tabellen genutzt
 
 df_jw <- df_jw %>% 
     mutate(
@@ -141,6 +140,8 @@ df_cope10$OECD_GELD <- df_jw$OECD_GELD
 df_jw$cluster <- df_cope11$cluster
 
 df_jw <- df_jw %>% mutate(cluster = factor(cluster, c("1","2","3"), c("Problem", "High", "Low")))
+
+df_jw2 <- df_jw #wird für spätere Tabellen genutzt
 
 Tabelle2 <- table1 (~ AGE + OECD_GELD + SCHUL + AUSBILD + 
                       FAMST + UEBERA + HAUSANZ + KIND | cluster, 
@@ -553,19 +554,24 @@ Tabelle6 <- table1 (~ PCS + ECS + VCS | cluster,
 Tabelle6
 
 Tabelle7 <- table1 (
-  ~ WARWICKS + WARWICKS_t1 | cluster,
+  ~ WARWICKS + GKS | cluster,
   data = df_jw,
-  overall = "Gesamt",
-  render = rndr2
+  overall = "Gesamt"
 )
 
 Tabelle7
 
+df_jw2_t1 <- df_jw2[!is.na(df_jw2$WARWICKS_t1),]
+
+label(df_jw2_t1$WARWICKS) <- "Wohlbefinden (t₀)"
+label(df_jw2_t1$WARWICKS_t1) <- "Wohlbefinden (t₁)"
+label(df_jw2_t1$GKS) <- "Konfliktscore (t₀)"
+label(df_jw2_t1$GKS_t1) <- "Konfliktscore (t₁)"
+
 Tabelle8 <- table1 (
-  ~ GKS + GKS_t1 | cluster,
-  data = df_jw,
+  ~ WARWICKS_t1 + GKS_t1 | cluster,
+  data = df_jw2_t1,
   overall = "Gesamt",
-  render = rndr2
 )
 
 Tabelle8
@@ -647,8 +653,6 @@ Tabelle9
 
 # Tabelle für Baseline t1 (kurz) ------------------------------------------
 
-df_jw2_t1 <- df_jw2[!is.na(df_jw2$WARWICKS_t1),]
-
 df_jw2_t1$AUSBILD <- recode_factor(
   df_jw2_t1$AUSBILD,
   '0' = "0",
@@ -719,4 +723,50 @@ Tabelle10 <- table1 (~ AGE + OECD_GELD + SCHUL + AUSBILD +
 
 Tabelle10
 
+
+
+
+# Tabelle für Hauptvariablen (Gesamt) -------------------------------------
+
+
+rndr2 <- function(x, name, ...) {
+  if (!is.numeric(x))
+    return(render.categorical.default(x))
+  what <- switch(
+    name,
+    WARWICKS = c("Mean (SD)", "Median [Min, Max]"),
+    WARWICKS_t1 = c("Mean (SD)", "Median [Min, Max]"),
+    GKS = c("Mean (SD)", "Median [Min, Max]"),
+    GKS_t1 = c("Mean (SD)", "Median [Min, Max]"),
+    PCS = c("Mean (SD)", "Median [Min, Max]"),
+    ECS = c("Mean (SD)", "Median [Min, Max]"),
+    VCS = c("Mean (SD)", "Median [Min, Max]")
+  )
+  parse.abbrev.render.code(c("", what))(x)
+}
+
+label(df_jw$WARWICKS) <- "Wohlbefinden (t₀)"
+label(df_jw$WARWICKS_t1) <- "Wohlbefinden (t₁)"
+label(df_jw$GKS) <- "Konfliktscore (t₀)"
+label(df_jw$GKS_t1) <- "Konfliktscore (t₁)"
+
+footnote <-
+  "¹ inkl. divers (n=1), ² Fehlende Werte (n=2)"
+
+Tabelle11 <- table1 (
+  ~ WARWICKS + GKS | SEX,
+  data = df_jw,
+  overall = "Gesamt²",
+  footnote = footnote
+)
+
+Tabelle11
+
+Tabelle12 <- table1 (
+  ~ WARWICKS_t1 + GKS_t1 | SEX,
+  data = df_jw2_t1,
+  overall = "Gesamt"
+)
+
+Tabelle12
 
