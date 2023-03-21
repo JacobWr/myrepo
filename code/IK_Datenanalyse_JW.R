@@ -26,6 +26,9 @@ df_jw$FREMDKIND <-
   ifelse(df_jw$PF06_04 == 1 & df_jw$KIND == 0,
          yes = 1,
          no = 0)
+df_jw$SEX[df_jw$SEX == 3] <- 2
+
+
   
   df_jw$OECD <- ifelse(df_jw$KIND < df_jw$HAUSANZ, yes = 1.0 + 
                          ((df_jw$HAUSANZ - df_jw$KIND - df_jw$FREMDKIND - 1) * 0.5) + 
@@ -38,6 +41,8 @@ df_jw$FREMDKIND <-
                                                    2250, 2750, 3250, 3750, 
                                                    4500, 5500))) %>% as.numeric()
   df_jw$OECD_GELD <- df_jw$GELD_MET/df_jw$OECD
+  
+  df_jw2 <- df_jw #wird für spätere Tabellen genutzt
 
 df_jw <- df_jw %>% 
     mutate(
@@ -83,6 +88,10 @@ rndr <- function(x, name, ...) {
     what <- switch(name,
                    AGE = c("Mean (SD)", "Median [Min, Max]"), 
                    OECD_GELD = c("Mean (SD)", "Median [Min, Max]"),
+                   SCHUL = c("n (%)"),
+                   AUSBILD = c("n (%)"),
+                   FAMST = c("n (%)"),
+                   UEBERA = c("n (%)"),
                    KIND = "Mean (SD)",
                    HAUSANZ  = "Mean (SD)")
     parse.abbrev.render.code(c("", what))(x)
@@ -91,11 +100,9 @@ rndr <- function(x, name, ...) {
 Tabelle1 <- table1 (~ AGE + OECD_GELD + SCHUL + AUSBILD + 
                       FAMST + UEBERA + HAUSANZ + KIND | SEX, 
                     data = df_jw, 
-                    overall = "Gesamt", 
-                    caption = caption,
+                    overall = "Gesamt",
                     footnote = footnote,
                     render = rndr)
-
 
 Tabelle1
 
@@ -510,18 +517,22 @@ apa.aov.table(lm_anova, filename = "jw_anova.doc")
 
 
 
-# zusätzliche Tabelle für Cluster -----------------------------------------
+# zusätzliche Tabelle für Cluster (20.03.2023)-----------------------------------------
+
 
 rndr2 <- function(x, name, ...) {
-  if (!is.numeric(x)) return(render.categorical.default(x))
-  what <- switch(name,
-                 WARWICKS = c("Mean (SD)", "Median [Min, Max]"), 
-                 WARWICKS_t1 = c("Mean (SD)", "Median [Min, Max]"),
-                 GKS = c("Mean (SD)", "Median [Min, Max]"),
-                 GKS_t1 = c("Mean (SD)", "Median [Min, Max]"),
-                 PCS = c("Mean (SD)", "Median [Min, Max]"),
-                 ECS = c("Mean (SD)", "Median [Min, Max]"),
-                 VCS = c("Mean (SD)", "Median [Min, Max]"))
+  if (!is.numeric(x))
+    return(render.categorical.default(x))
+  what <- switch(
+    name,
+    WARWICKS = c("Mean (SD)", "Median [Min, Max]"),
+    WARWICKS_t1 = c("Mean (SD)", "Median [Min, Max]"),
+    GKS = c("Mean (SD)", "Median [Min, Max]"),
+    GKS_t1 = c("Mean (SD)", "Median [Min, Max]"),
+    PCS = c("Mean (SD)", "Median [Min, Max]"),
+    ECS = c("Mean (SD)", "Median [Min, Max]"),
+    VCS = c("Mean (SD)", "Median [Min, Max]")
+  )
   parse.abbrev.render.code(c("", what))(x)
 }
 
@@ -532,25 +543,180 @@ label(df_jw$GKS_t1) <- "Konfliktscore (t₁)"
 
 
 caption <- "Tabelle 2. Cluster Charakteristiken"
-footnote <- "¹ inkl. divers (n=1), ² inkl. Hauptschulabschluss (n=1),  ³ Fehlende Werte (n=1)"
+footnote <-
+  "¹ inkl. divers (n=1), ² inkl. Hauptschulabschluss (n=1),  ³ Fehlende Werte (n=1)"
 
-Tabelle6 <- table1 (~ PCS + ECS + VCS| cluster, 
-                    data = df_jw, 
+Tabelle6 <- table1 (~ PCS + ECS + VCS | cluster,
+                    data = df_jw,
                     overall = "Gesamt")
 
 Tabelle6
 
-Tabelle7 <- table1 (~ WARWICKS + WARWICKS_t1| cluster, 
-                    data = df_jw, 
-                    overall = "Gesamt",
-                    render = rndr2)
+Tabelle7 <- table1 (
+  ~ WARWICKS + WARWICKS_t1 | cluster,
+  data = df_jw,
+  overall = "Gesamt",
+  render = rndr2
+)
 
 Tabelle7
 
-Tabelle8 <- table1 (~ GKS + GKS_t1| cluster, 
-                    data = df_jw, 
-                    overall = "Gesamt",
-                    render = rndr2)
+Tabelle8 <- table1 (
+  ~ GKS + GKS_t1 | cluster,
+  data = df_jw,
+  overall = "Gesamt",
+  render = rndr2
+)
 
 Tabelle8
+
+
+# Tabelle für Baseline t0 (kurz) ---------------------------------------------
+
+df_jw2$AUSBILD <- recode_factor(
+    df_jw2$AUSBILD,
+    '0' = "0",
+    '1' = "0",
+    '2' = "1",
+    '3' = "1",
+    '4' = "2",
+    '5' = "2",
+    '6' = "2"
+  )
+
+df_jw2 <- df_jw2 %>% 
+  mutate(
+    SEX = factor(SEX, c("1", "2", "3"), c("männlich", "weiblich¹", "divers")), 
+    SCHUL = factor(SCHUL, c("2", "3"),
+                   c("Realschulabschluss oder vergleichbare Abschlüsse³", 
+                     "Abitur oder vergleichbare Abschlüsse")), 
+    AUSBILD = factor(AUSBILD, c("0", "1", "2"),
+                     c("Keine Ausbildung", 
+                       "Ausbildung",
+                       "Studium⁴")),
+    GELD = factor(GELD, c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"), 
+                  c("unter 451€", "451 bis unter 750 €", "750 bis unter 1000€", 
+                    "1.000 bis unter 1.500€", "1.500 bis unter 2000€", "2.000 bis unter 2.500€", 
+                    "2.500 bis unter 3.000€", "3.000 bis unter 3.500€", "3.500 bis unter 4000€",
+                    "4.000 bis unter 5.000€", "5000€ und mehr")),
+    FAMST = factor(FAMST, c("1", "3", "4"), c("verheiratet", "geschieden oder verwitwet", 
+                                              "ledig")),
+    UEBERA = factor(UEBERA, c("1", "2", "3"),
+                    c("Nie", "Manchmal", "Regelmäßig")))
+
+
+label(df_jw2$AGE) <- "Alter"
+label(df_jw2$SEX) <- "Geschlecht"
+label(df_jw2$SCHUL) <- "Schulausbildung"
+label(df_jw2$AUSBILD) <- "Berufliche Ausbildung"
+label(df_jw2$GELD) <- "Nettoeinkommen"
+label(df_jw2$HAUSANZ) <- "Anzahl der Haushaltsmitglieder"
+label(df_jw2$FAMST) <- "Familienstand"
+label(df_jw2$KIND) <- "Anzahl an Kindern"
+label(df_jw2$UEBERA) <- "Überstunden (Häufigkeit)⁵"
+label(df_jw2$OECD_GELD) <- "Nettoäquivalenzeinkommen (Neue OECD-Skala)"
+
+caption <- "Tabelle 2. Cluster Charakteristiken"
+footnote <- "¹ inkl. divers (n=1), ² Fehlende Werte (n=2), ³ inkl. Hauptschulabschluss (n=1), ⁴ Fachschule (n=13), ⁵ Fehlende Werte (n=2)"
+units(df_jw2$OECD_GELD) <- "Euro"
+
+rndr3 <- function(x, name, ...) {
+  if (!is.numeric(x)) return(render.categorical.default(x))
+  what <- switch(name,
+                 AGE = c("Mean (SD)", "Median [Min, Max]"), 
+                 OECD_GELD = c("Mean (SD)", "Median [Min, Max]"),
+                 SCHUL = c("n (%)"),
+                 AUSBILD = c("n (%)"),
+                 FAMST = c("n (%)"),
+                 UEBERA = c("n (%)"),
+                 KIND = "Mean (SD)",
+                 HAUSANZ  = "Mean (SD)")
+  parse.abbrev.render.code(c("", what))(x)
+}
+
+Tabelle9 <- table1 (~ AGE + OECD_GELD + SCHUL + AUSBILD + 
+                      FAMST + UEBERA + HAUSANZ + KIND | SEX, 
+                    data = df_jw2, 
+                    overall = "Gesamt²",
+                    footnote = footnote,
+                    render = rndr3)
+
+Tabelle9
+
+
+
+# Tabelle für Baseline t1 (kurz) ------------------------------------------
+
+df_jw2_t1 <- df_jw2[!is.na(df_jw2$WARWICKS_t1),]
+
+df_jw2_t1$AUSBILD <- recode_factor(
+  df_jw2_t1$AUSBILD,
+  '0' = "0",
+  '1' = "0",
+  '2' = "1",
+  '3' = "1",
+  '4' = "2",
+  '5' = "2",
+  '6' = "2"
+)
+
+df_jw2_t1 <- df_jw2_t1 %>% 
+  mutate(
+    SEX = factor(SEX, c("1", "2", "3"), c("männlich", "weiblich", "divers")), 
+    SCHUL = factor(SCHUL, c("2", "3"),
+                   c("Realschulabschluss oder vergleichbare Abschlüsse", 
+                     "Abitur oder vergleichbare Abschlüsse")), 
+    AUSBILD = factor(AUSBILD, c("0", "1", "2"),
+                     c("Keine Ausbildung", 
+                       "Ausbildung",
+                       "Studium")),
+    GELD = factor(GELD, c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"), 
+                  c("unter 451€", "451 bis unter 750 €", "750 bis unter 1000€", 
+                    "1.000 bis unter 1.500€", "1.500 bis unter 2000€", "2.000 bis unter 2.500€", 
+                    "2.500 bis unter 3.000€", "3.000 bis unter 3.500€", "3.500 bis unter 4000€",
+                    "4.000 bis unter 5.000€", "5000€ und mehr")),
+    FAMST = factor(FAMST, c("1", "3", "4"), c("verheiratet", "geschieden oder verwitwet", 
+                                              "ledig")),
+    UEBERA = factor(UEBERA, c("1", "2", "3"),
+                    c("Nie", "Manchmal", "Regelmäßig")))
+
+
+label(df_jw2_t1$AGE) <- "Alter"
+label(df_jw2_t1$SEX) <- "Geschlecht"
+label(df_jw2_t1$SCHUL) <- "Schulausbildung"
+label(df_jw2_t1$AUSBILD) <- "Berufliche Ausbildung"
+label(df_jw2_t1$GELD) <- "Nettoeinkommen"
+label(df_jw2_t1$HAUSANZ) <- "Anzahl der Haushaltsmitglieder"
+label(df_jw2_t1$FAMST) <- "Familienstand"
+label(df_jw2_t1$KIND) <- "Anzahl an Kindern"
+label(df_jw2_t1$UEBERA) <- "Überstunden (Häufigkeit)"
+label(df_jw2_t1$OECD_GELD) <- "Nettoäquivalenzeinkommen (Neue OECD-Skala)¹"
+
+caption <- "Tabelle 2. Cluster Charakteristiken"
+footnote <- "¹ fehlende Werte (n=1)"
+units(df_jw2_t1$OECD_GELD) <- "Euro"
+
+rndr4 <- function(x, name, ...) {
+  if (!is.numeric(x)) return(render.categorical.default(x))
+  what <- switch(name,
+                 AGE = c("Mean (SD)", "Median [Min, Max]"), 
+                 OECD_GELD = c("Mean (SD)", "Median [Min, Max]"),
+                 SCHUL = c("n (%)"),
+                 AUSBILD = c("n (%)"),
+                 FAMST = c("n (%)"),
+                 UEBERA = c("n (%)"),
+                 KIND = "Mean (SD)",
+                 HAUSANZ  = "Mean (SD)")
+  parse.abbrev.render.code(c("", what))(x)
+}
+
+Tabelle10 <- table1 (~ AGE + OECD_GELD + SCHUL + AUSBILD + 
+                      FAMST + UEBERA + HAUSANZ + KIND | SEX, 
+                    data = df_jw2_t1, 
+                    overall = "Gesamt",
+                    footnote = footnote,
+                    render = rndr4)
+
+Tabelle10
+
 
