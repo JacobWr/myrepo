@@ -13,6 +13,10 @@ library(dplyr)
 library(table1)
 library(flextable)
 library(magrittr)
+library(lmtest)
+library(sandwich)
+library(stargazer)
+library(sjPlot)
 # Datensatz einlesen ------------------------------------------------------
 df_jw <- df_cope10
 # Tabellen 1 erstellen -------------------------------------------------------
@@ -187,33 +191,28 @@ Tabelle5
 
 
 # Regressionsanalyse ------------------------------------------------------
-library(lmtest)
-library(sandwich)
-library(stargazer)
-library(sjPlot)
-coeftest(model_t0, vcov = vcovHC(model_t0, type = "HC3"))
+ 
+ #t0 Modell
 
-  #t0 Modell
-
-df_cope10_147$cluster <- as.factor(df_cope10_147$cluster)
+df_cope10$cluster <- as.factor(df_cope10$cluster)
 
 model1_t0 <- lm(WARWICKS ~ GKS*cluster + AGE + as.numeric(OECD_GELD) + 
                    as.numeric(PHYGES) +  as.numeric(SCHLAF) + SEX, 
-                 data = df_cope10_147) # adjustiert (t0)
+                 data = df_cope10) # adjustiert (t0)
 
-model1_T0 <- lm(WARWICKS ~ GKS*cluster, data = df_cope10_147) # unadjustiert (t0)
+model1_T0 <- lm(WARWICKS ~ GKS*cluster, data = df_cope10) # unadjustiert (t0)
 
 
 
   #t1 Modell 
 
-df_cope10_147$GKS_DIFF <- df_cope10_147$GKS_t1 - df_cope10_147$GKS
-df_cope10_147$WARWICKS_DIFF <- df_cope10_147$WARWICKS_t1 - df_cope10_147$WARWICKS
+df_cope10$GKS_DIFF <- df_cope10$GKS_t1 - df_cope10$GKS
+df_cope10$WARWICKS_DIFF <- df_cope10$WARWICKS_t1 - df_cope10$WARWICKS
 
-model2_t1 <- lm(WARWICKS_DIFF ~ GKS_DIFF*cluster, data = df_cope10_147)
+model2_t1 <- lm(WARWICKS_DIFF ~ GKS_DIFF*cluster, data = df_cope10)
 
 model2_T1 <- lm(WARWICKS_t1 ~ GKS_t1*cluster + WARWICKS + 
-                  GKS, data = df_cope10_147)
+                  GKS, data = df_cope10)
 
   #Interaktionsplot darstellen
 
@@ -224,7 +223,7 @@ interact_plot(model = model_t0_ia, pred = GKS, modx = cluster)
 # Sensitivitätsanalysen ---------------------------------------------------
   #Copingstrategien in adaptiv und maladaptiv aufteilen
 
-df_cope10_2 <- df_cope10_147
+df_cope10_2 <- df_cope10
 
 df_cope10_2 <- df_cope10_2 %>% mutate_at(c(5:32), as.numeric)
 
@@ -381,7 +380,7 @@ tab_model(model_t0_ia, model_ua_147,  auto.label = TRUE, digits = 3, show.p = F,
 # Sensitivitätsanalysen 2.0 (21.02.2023) ----------------------------------
   #Konfliktbelastung anstatt Score
 
-df_t1 <- df_cope10_147[which(df_cope10_147$WARWICKS_t1 != 0),]
+df_t1 <- df_cope10[which(df_cope10$WARWICKS_t1 != 0),]
 
 v1 <- c(
   "PHAUS_B",
@@ -442,7 +441,7 @@ t.test(df_t1$WARWICKS[which(df_t1$GKS != 0)], df_t1$WARWICKS_t1[which(df_t1$GKS 
   #t = 0.22102, df = 73.872, p-value = 0.8257 --> nicht signifikant
 
   #nicht-Streiter ausschließen
-df_Kon <- df_cope10_147[which(df_cope10_147$GKS != 0), ]
+df_Kon <- df_cope10[which(df_cope10$GKS != 0), ]
 
 model2_Kon <- lm(WARWICKS ~ GKS*cluster + AGE + as.numeric(OECD_GELD) + 
                    as.numeric(SCHLAF) + SEX, data = df_Kon)
@@ -455,47 +454,64 @@ summary(model3_Kon)
 
   #Analyse: Modelle Privat/Beruflich
 
-df_cope10_147$BERUF_K <- rowSums(df_cope10_147[,c("AFUR_KS", "AKOL_KS", 
+df_cope10$BERUF_K <- rowSums(df_cope10[,c("AFUR_KS", "AKOL_KS", 
                                         "AUNT_KS", "ABEZ_KS")], na.rm = T)
 
-df_cope10_147$BERUF_K_t1 <- rowSums(df_cope10_147[,c("AFUR_KS_t1", "AKOL_KS_t1", 
+df_cope10$BERUF_K_t1 <- rowSums(df_cope10[,c("AFUR_KS_t1", "AKOL_KS_t1", 
                                                   "AUNT_KS_t1", "ABEZ_KS_t1")], na.rm = T)
 
-df_cope10_147$BERUF_K_DIFF <- df_cope10_147$BERUF_K_t1 - df_cope10_147$BERUF_K
+df_cope10$BERUF_K_DIFF <- df_cope10$BERUF_K_t1 - df_cope10$BERUF_K
 
-df_cope10_147$PRIVAT_K <- rowSums(df_cope10_147[,c("PHAUS_KS", "PFAM_KS", "PFREU_KS", 
+df_cope10$PRIVAT_K <- rowSums(df_cope10[,c("PHAUS_KS", "PFAM_KS", "PFREU_KS", 
                                          "PBEK_KS")], na.rm = T)
 
-df_cope10_147$PRIVAT_K_t1 <- rowSums(df_cope10_147[,c("AFUR_KS_t1", "AKOL_KS", 
+df_cope10$PRIVAT_K_t1 <- rowSums(df_cope10[,c("AFUR_KS_t1", "AKOL_KS", 
                                                      "AUNT_KS", "ABEZ_KS")], na.rm = T)
 
-df_cope10_147$PRIVAT_K_DIFF <- df_cope10_147$PRIVAT_K_t1 - df_cope10_147$PRIVAT_K
+df_cope10$PRIVAT_K_DIFF <- df_cope10$PRIVAT_K_t1 - df_cope10$PRIVAT_K
 
-model_beruf <- lm(WARWICKS_DIFF ~ BERUF_K_DIFF*cluster, data = df_cope10_147)
+model_beruf <- lm(WARWICKS_DIFF ~ BERUF_K_DIFF*cluster, data = df_cope10)
 
-model_privat <- lm(WARWICKS_DIFF ~ PRIVAT_K_DIFF*cluster, data = df_cope10_147)
+model_privat <- lm(WARWICKS_DIFF ~ PRIVAT_K_DIFF*cluster, data = df_cope10)
 
   #t-Test für Coping (--> Copen Streiter mehr als nicht-Streiter? Nein!)
-t.test(df_cope10_147$PCS[df_cope10_147$GKS == 0], 
-       df_cope10_147$PCS[df_cope10_147$GKS != 0])
+t.test(df_cope10$PCS[df_cope10$GKS == 0], 
+       df_cope10$PCS[df_cope10$GKS != 0])
   #p-value = 0.6992
 
-t.test(df_cope10_147$ECS[df_cope10_147$GKS == 0], 
-       df_cope10_147$ECS[df_cope10_147$GKS != 0])
+t.test(df_cope10$ECS[df_cope10$GKS == 0], 
+       df_cope10$ECS[df_cope10$GKS != 0])
   #p-value = 0.34
 
-t.test(df_cope10_147$VCS[df_cope10_147$GKS == 0], 
-       df_cope10_147$VCS[df_cope10_147$GKS != 0])
+t.test(df_cope10$VCS[df_cope10$GKS == 0], 
+       df_cope10$VCS[df_cope10$GKS != 0])
   #p-value = 0.5276
 
 #Analyse ohne korrigierten Personencode
 
-df_pcdf_kor <- df_cope10_147[which(df_cope10_147$PC_KOR != 1 & !is.na(df_cope10_147$WARWICKS_DIFF)),]
+df_pcdf_kor <- df_cope10[which(df_cope10$PC_KOR != 1 & !is.na(df_cope10$WARWICKS_DIFF)),]
 model4_PC_KOR <- lm(WARWICKS_DIFF ~ GKS_DIFF*cluster, 
-                    data = df_pckor) 
+                    data = df_pcdf_kor) 
 
 summary(model4_PC_KOR)
 
+#Tabelle formatieren
+tab_model(
+  model4_PC_KOR,
+  show.p = F,
+  pred.labels = c(
+    "Konflikte Abs. Differenz (Score)",
+    "Cluster [High]",
+    "Cluster [Low]",
+    "Konflikte Abs. Differenz (Score) x Cluster [High]",
+    "Konflikte Abs. Differenz (Score) x Cluster [Low]"
+  ),
+  rm.terms = "(Intercept)",
+  string.est = "B",
+  ci.hyphen = " ; ",
+  digits = 3,
+  dv.labels = "Wohlbefinden Abs. Differenz (Score)"
+)
 
 # Weitere Deskription (25.02.2023) ----------------------------------------
 
@@ -503,17 +519,17 @@ summary(model4_PC_KOR)
 library(apaTables)
 library(apa)
 
-subset_cor <- subset(df_cope10_147, select = c(GKS, WARWICKS, cluster, PCS, ECS, VCS))
+subset_cor <- subset(df_cope10, select = c(GKS, WARWICKS, cluster, PCS, ECS, VCS))
 subset_cor$cluster <- as.character(subset_cor$cluster) %>% as.numeric(subset_cor$cluster)
 cor(subset_cor)
 
 apa.cor.table(subset_cor, filename = "jw.doc",
               show.sig.stars = FALSE, cor.method = "spearman")
 
-subset_ttest <- subset(df_cope10_147, cluster == 1 | cluster == 2)
-subset_ttest2 <- subset(df_cope10_147, cluster == 1 | cluster == 3)
-subset_ttest3 <- subset(df_cope10_147, cluster == 2 | cluster == 3)
-lm_anova <- lm(WARWICKS ~ cluster, df_cope10_147)
+subset_ttest <- subset(df_cope10, cluster == 1 | cluster == 2)
+subset_ttest2 <- subset(df_cope10, cluster == 1 | cluster == 3)
+subset_ttest3 <- subset(df_cope10, cluster == 2 | cluster == 3)
+lm_anova <- lm(WARWICKS ~ cluster, df_cope10)
 apa.aov.table(lm_anova, filename = "jw_anova.doc")
 
 
