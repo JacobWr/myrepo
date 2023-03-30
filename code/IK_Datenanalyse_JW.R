@@ -17,6 +17,10 @@ library(lmtest)
 library(sandwich)
 library(stargazer)
 library(sjPlot)
+library(purrr)
+library(broom)
+library(kableExtra)
+library(table1)
 # Datensatz einlesen ------------------------------------------------------
 df_jw <- df_cope10
 # Tabellen 1 erstellen -------------------------------------------------------
@@ -195,10 +199,33 @@ Tabelle5
  #t0 Modell
 
 df_cope10$cluster <- as.factor(df_cope10$cluster)
-
+df_cope10$SEX[df_cope10$SEX == 3] <- 2
 model1_t0 <- lm(WARWICKS ~ GKS*cluster + AGE + as.numeric(OECD_GELD) + 
                    as.numeric(PHYGES) +  as.numeric(SCHLAF) + SEX, 
                  data = df_cope10) # adjustiert (t0)
+
+#Tabelle formatieren
+tab_model(
+  model1_t0,
+  show.p = F,
+  pred.labels = c(
+    "Konflikte t₀ (Score)",
+    "Cluster [High]",
+    "Cluster [Low]",
+    "Alter",
+    "Nettoäquivalenzeinkommen (€)",
+    "Physische Gesundheit",
+    "Schlaf",
+    "Geschlecht [weiblich]",
+    "Konflikte (t₀) (Score) x Cluster [High]",
+    "Konflikte (t₀) (Score) x Cluster [Low]"
+  ),
+  rm.terms = "(Intercept)",
+  string.est = "B",
+  ci.hyphen = " ; ",
+  digits = 3,
+  dv.labels = "Wohlbefinden (t₀) (Score)"
+)
 
 model1_T0 <- lm(WARWICKS ~ GKS*cluster, data = df_cope10) # unadjustiert (t0)
 
@@ -312,8 +339,8 @@ library(rgl)
 
 library(magick)
 
-# df_cope10_147$cluster_col <- ifelse(df_cope10_147$cluster == 1, yes = "blue", no = ifelse(df_cope10_147$cluster == 2, yes = "darkorange", no = "black"))
-# df <- df_cope10_147
+# df_cope10$cluster_col <- ifelse(df_cope10$cluster == 1, yes = "blue", no = ifelse(df_cope10$cluster == 2, yes = "darkorange", no = "black"))
+# df <- df_cope10
 # plot3d(df$PCS, df$ECS, df$VCS, col = df$cluster_col, type = "s", radius = .1/2,
 # xlab = "PCS", ylab ="ECS", zlab = "VCS")
 # legend3d("topright", legend = c("Problem", "High", "Low"), pch = 16, col = c("blue", "darkorange","black"), cex = 1, inset=c(0.1, 0.2))
@@ -330,7 +357,7 @@ library(magick)
 #   type = "gif",
 #   clean = TRUE
 # )
-#rgl.snapshot(filename = "3dplotcluster.png")
+rgl.snapshot(filename = "3dplotcluster.png")
 
 library(ggplot2)
 
@@ -475,16 +502,16 @@ model_beruf <- lm(WARWICKS_DIFF ~ BERUF_K_DIFF*cluster, data = df_cope10)
 model_privat <- lm(WARWICKS_DIFF ~ PRIVAT_K_DIFF*cluster, data = df_cope10)
 
   #t-Test für Coping (--> Copen Streiter mehr als nicht-Streiter? Nein!)
-t.test(df_cope10$PCS[df_cope10$GKS == 0], 
-       df_cope10$PCS[df_cope10$GKS != 0])
+t1 <- t.test(df_cope10$PCS[df_cope10$GKS == 0],
+             df_cope10$PCS[df_cope10$GKS != 0])
   #p-value = 0.6992
 
-t.test(df_cope10$ECS[df_cope10$GKS == 0], 
-       df_cope10$ECS[df_cope10$GKS != 0])
+t2 <- t.test(df_cope10$ECS[df_cope10$GKS == 0],
+             df_cope10$ECS[df_cope10$GKS != 0])
   #p-value = 0.34
 
-t.test(df_cope10$VCS[df_cope10$GKS == 0], 
-       df_cope10$VCS[df_cope10$GKS != 0])
+t3 <- t.test(df_cope10$VCS[df_cope10$GKS == 0],
+             df_cope10$VCS[df_cope10$GKS != 0])
   #p-value = 0.5276
 
 #Analyse ohne korrigierten Personencode
@@ -562,10 +589,14 @@ label(df_jw$GKS_t1) <- "Konfliktscore (t₁)"
 caption <- "Tabelle 2. Cluster Charakteristiken"
 footnote <-
   "¹ inkl. divers (n=1), ² inkl. Hauptschulabschluss (n=1),  ³ Fehlende Werte (n=1)"
-
+footnote2 <-
+  "¹PCS = Problemorientieres Coping-Score, ²ECS = Emotionsorientieres Coping-Score,
+³VCS = Vermeindendes Coping-Score, ⁴Problem = Problemorientierte Coping-Gruppe, ⁵High = High-Coping-
+Gruppe, ⁶Low = Low-Coping-Gruppe"
 Tabelle6 <- table1 (~ PCS + ECS + VCS | cluster,
                     data = df_jw,
-                    overall = "Gesamt")
+                    overall = "Gesamt",
+                    footnote = footnote2)
 
 Tabelle6
 
