@@ -3,7 +3,7 @@
 rm(list = ls(all = T))
 
 path <-
-  ("~/Desktop/Uni Bremen/Master/3.Semester/Forschungsprojekt/")
+  ("")
 
 setwd(paste(path, "Datensatz", sep = ""))
 
@@ -201,7 +201,7 @@ Tabelle5
 df_cope10$cluster <- as.factor(df_cope10$cluster)
 df_cope10$SEX[df_cope10$SEX == 3] <- 2
 model1_t0 <- lm(WARWICKS ~ GKS*cluster + AGE + as.numeric(OECD_GELD) + 
-                   as.numeric(PHYGES) +  as.numeric(SCHLAF) + SEX, 
+                   as.numeric(as.character(PHYGES)) +  as.numeric(as.character(SCHLAF)) + SEX, 
                  data = df_cope10) # adjustiert (t0)
 
 #Tabelle formatieren
@@ -407,6 +407,9 @@ tab_model(model_t0_ia, model_ua_147,  auto.label = TRUE, digits = 3, show.p = F,
 # Sensitivitätsanalysen 2.0 (21.02.2023) ----------------------------------
   #Konfliktbelastung anstatt Score
 
+#Unterscheidet sich das Wohlbefinden zu t0 und t1 bei Personen die Konflikte haben?
+t.test(df_t1$WARWICKS[df_t1$GKS > 0], df_t1$WARWICKS_t1[df_t1$GKS > 0])
+
 df_t1 <- df_cope10[which(df_cope10$WARWICKS_t1 != 0),]
 
 v1 <- c(
@@ -458,6 +461,7 @@ df_t1$GKB_DIFF <- df_t1$GKB_t1 - df_t1$GKB
 
 model_s3 <- lm(WARWICKS_DIFF ~ GKB_DIFF*cluster, data = df_t1) #Längsschnittmodell
 
+
   #Warwicks-Verteilung prüfen
 ggplot(data = df_cope10_147, aes (x=(as.numeric(WARWICKS)))) + 
   geom_histogram(aes (y = ..density..), color = "1", fill = "grey", bins = 15) + 
@@ -490,16 +494,17 @@ df_cope10$BERUF_K_t1 <- rowSums(df_cope10[,c("AFUR_KS_t1", "AKOL_KS_t1",
 df_cope10$BERUF_K_DIFF <- df_cope10$BERUF_K_t1 - df_cope10$BERUF_K
 
 df_cope10$PRIVAT_K <- rowSums(df_cope10[,c("PHAUS_KS", "PFAM_KS", "PFREU_KS", 
-                                         "PBEK_KS")], na.rm = T)
+                                         "PBEK_KS", "SONST_KS")], na.rm = T)
 
-df_cope10$PRIVAT_K_t1 <- rowSums(df_cope10[,c("AFUR_KS_t1", "AKOL_KS", 
-                                                     "AUNT_KS", "ABEZ_KS")], na.rm = T)
+df_cope10$PRIVAT_K_t1 <- rowSums(df_cope10[,c("PHAUS_KS_t1", "PFAM_KS_t1", "PFREU_KS_t1", 
+                                              "PBEK_KS_t1", "SONST_KS_t1")], na.rm = T)
 
 df_cope10$PRIVAT_K_DIFF <- df_cope10$PRIVAT_K_t1 - df_cope10$PRIVAT_K
 
-model_beruf <- lm(WARWICKS_DIFF ~ BERUF_K_DIFF*cluster, data = df_cope10)
 
-model_privat <- lm(WARWICKS_DIFF ~ PRIVAT_K_DIFF*cluster, data = df_cope10)
+model_beruf <- lm(WARWICKS_DIFF ~ BERUF_K_DIFF*cluster + PRIVAT_K_DIFF, data = df_cope10)
+
+model_privat <- lm(WARWICKS_DIFF ~ PRIVAT_K_DIFF*cluster + BERUF_K_DIFF, data = df_cope10)
 
   #t-Test für Coping (--> Copen Streiter mehr als nicht-Streiter? Nein!)
 t1 <- t.test(df_cope10$PCS[df_cope10$GKS == 0],
@@ -691,8 +696,7 @@ Tabelle9 <- table1 (~ AGE + OECD_GELD + SCHUL + AUSBILD +
                       FAMST + UEBERA + HAUSANZ + KIND | SEX, 
                     data = df_jw2, 
                     overall = "Gesamt²",
-                    footnote = footnote,
-                    render = rndr3)
+                    footnote = footnote)
 
 Tabelle9
 
@@ -710,6 +714,8 @@ df_jw2_t1$AUSBILD <- recode_factor(
   '5' = "2",
   '6' = "2"
 )
+
+df_jw2$OECD_GELD <- df_cope10$OEC
 
 df_jw2_t1 <- df_jw2_t1 %>% 
   mutate(
@@ -817,3 +823,68 @@ Tabelle12 <- table1 (
 
 Tabelle12
 
+
+# Stratifizierte Analysen -------------------------------------------------
+
+df_cope10_PCS <- filter(df_cope10, cluster == 1)
+df_cope10_high <- filter(df_cope10, cluster == 2)
+df_cope10_low <- filter(df_cope10, cluster == 3)
+model_PCS <-
+  lm(
+    WARWICKS ~ GKS + AGE + OECD_GELD + as.numeric(as.character(PHYGES)) + as.numeric(as.character(SCHLAF)) + SEX,
+    data = df_cope10_PCS
+  )
+model_high <-
+  lm(
+    WARWICKS ~ GKS + AGE + OECD_GELD + as.numeric(as.character(PHYGES)) + as.numeric(as.character(SCHLAF)) + SEX,
+    data = df_cope10_high
+  )
+model_low <-
+  lm(
+    WARWICKS ~ GKS + AGE + OECD_GELD + as.numeric(as.character(PHYGES)) + as.numeric(as.character(SCHLAF)) + SEX,
+    data = df_cope10_low
+  )
+
+#Coefficients (high)
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)                      19.6535952  3.0040666   6.542 2.28e-07 ***
+#   GKS                              -0.0126244  0.0150963  -0.836    0.409    
+# AGE                              -0.0418517  0.0482876  -0.867    0.393    
+# OECD_GELD                         0.0006252  0.0005365   1.165    0.253    
+# as.numeric(as.character(PHYGES))  0.5049810  0.3346250   1.509    0.141    
+# as.numeric(as.character(SCHLAF))  0.0890827  0.2556317   0.348    0.730    
+# SEX2                             -1.4199493  0.9853636  -1.441    0.159    
+# ---
+
+#Coefficients (PCS)
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)                      17.2360104  2.4234168   7.112 2.97e-09 ***
+#   GKS                              -0.0422851  0.0199349  -2.121   0.0386 *  
+#   AGE                               0.0481329  0.0452879   1.063   0.2927    
+# OECD_GELD                        -0.0001414  0.0003267  -0.433   0.6669    
+# as.numeric(as.character(PHYGES))  0.3478494  0.2585079   1.346   0.1842    
+# as.numeric(as.character(SCHLAF))  0.5831830  0.2475230   2.356   0.0222 *  
+#   SEX2                             -0.7456154  0.8590645  -0.868   0.3893    
+# ---
+  
+# Coefficients (low)
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)                      19.0731485  2.1833994   8.736 6.63e-11 ***
+#   GKS                              -0.0081321  0.0204922  -0.397   0.6935    
+# AGE                               0.0448341  0.0327675   1.368   0.1787    
+# OECD_GELD                        -0.0002936  0.0003967  -0.740   0.4634    
+# as.numeric(as.character(PHYGES))  0.2962718  0.3023220   0.980   0.3328    
+# as.numeric(as.character(SCHLAF))  0.2770600  0.3087791   0.897   0.3748    
+# SEX2                             -1.9437154  0.8275014  -2.349   0.0237 *  
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+tab_model(
+  model_PCS,
+  show.p = F,
+  rm.terms = "(Intercept)",
+  string.est = "B",
+  ci.hyphen = " ; ",
+  digits = 3,
+  dv.labels = "Wohlbefinden (t₀) (Score)"
+)

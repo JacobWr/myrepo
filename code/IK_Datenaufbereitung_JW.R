@@ -2,7 +2,7 @@
 # WD ----------------------------------------------------------------------
 rm(list=ls(all=T))
 
-path <- ("~/Desktop/Uni Bremen/Master/3.Semester/Forschungsprojekt/") 
+path <- ("") 
 
 setwd(paste(path,"Datensatz", sep=""))
 
@@ -304,7 +304,7 @@ df_merge$PC_KOR <- as.factor(ifelse(df_merge$PersCode == "HIGEH14" | df_merge$Pe
   # Personencodes und Antworten zu Personencodes aus t0 entfernen
 
 drop2 <- c("IC01_01", "IC02_01", 
-           "IC03_01", "IC04_01", "IC05_01", "IC07_01")
+           "IC03_01", "IC04_01", "IC05_01", "IC07_01", "PersCode")
 
 df_merge <- df_merge[,!(names(df_merge) %in% drop2)]
 
@@ -333,7 +333,7 @@ df_merge2[!names(df_merge2) %in% c(numVar, chrVar)] <- lapply(df_merge2[!names(d
                                                               as.factor)
 
 
-# Datensatz in Dataframe transofmieren ------------------------------------
+# Datensatz in Dataframe transformieren ------------------------------------
 df_jw <- as.data.frame(df_merge2)
 
 
@@ -342,8 +342,8 @@ df_jw <- as.data.frame(df_merge2)
 
 
 # Abgleich mit Lorenz (SAS) -----------------------------------------------
- df_ld2 <- read.table("df_ld_1312.txt", sep = "\t", header = T, dec = ".")
- df_ld2 <- read.csv("InterKon13_12_22_LD.csv", sep = ",", header = T, dec = ".")
+# df_ld2 <- read.table("df_ld_1312.txt", sep = "\t", header = T, dec = ".")
+# df_ld2 <- read.csv("InterKon13_12_22_LD.csv", sep = ",", header = T, dec = ".")
  
 
 # SoSci Fehler - Datensatz filtern nach Personen die Coping ausgefüllt haben --------
